@@ -50,6 +50,9 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                     $this->type = isset($this->settings['type']) ? $this->settings['type'] : null;
                     $this->free = isset($this->settings['free']) ? $this->settings['free'] : null;
                     $this->fixed = isset($this->settings['fixed']) ? $this->settings['fixed'] : null;
+                    $this->height = isset($this->settings['height']) ? $this->settings['height'] : null;
+                    $this->width = isset($this->settings['width']) ? $this->settings['width'] : null;
+                    $this->length = isset($this->settings['length']) ? $this->settings['length'] : null;
 
                     $this->uc = new UrgentCargusClass();
                     if (!empty($this->webservice) && !empty($this->apikey)) {
@@ -196,6 +199,21 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         'fixed' => array(
                             'title'         => __('Cost fix transport', 'urgentcargus'),
                             'type'          => 'text',
+                        ),
+
+                        'height' => array(
+                            'title'         => __('Inaltime', 'urgentcargus'),
+                            'type'          => 'number',
+                        ),
+
+                        'width' => array(
+                            'title'         => __('Latime', 'urgentcargus'),
+                            'type'          => 'number',
+                        ),
+
+                        'length' => array(
+                            'title'         => __('Lungime', 'urgentcargus'),
+                            'type'          => 'number',
                         ),
                     );
                 }
@@ -368,6 +386,12 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
         if (is_admin()) {
             // obtin comanda, greutatea si comentariile
             $order = wc_get_order($order_id);
+
+            if(!trim($order->get_shipping_postcode())){
+                echo 'Va rugam sa introduceti codul postal al destinatarului';
+                die();
+            }
+
             if (!$order->has_shipping_method('urgentcargus')) {
                 $order->add_order_note('no urgentcargus', 1);
                 return;
@@ -408,6 +432,12 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 urgentcargus_shipping_method();
                 $ucsm = new UrgentCargus_Shipping_Method();
 
+                if(!$ucsm->length || !$ucsm->width || !$ucsm->height){
+                    echo 'Va rugam sa introduceti dimensiunile coletului';
+                    die();
+                }
+
+
                 if ($ucsm->token !== 'error') {
                     $fields = array(
                         'Sender' => array(
@@ -436,14 +466,23 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         'BankRepayment' => $ucsm->repayment == 'bank' ? $ramburs : 0,
                         'OtherRepayment' => '',
                         'OpenPackage' => $ucsm->open == 'yes' ? true : false,
-                        'PriceTableId' => null,
                         'ShipmentPayer' => $ucsm->payer == 'recipient' ? 2 : 1,
-                        'ServiceId' => $ucsm->payer == 'recipient' ? 4 : 1,
                         'MorningDelivery' => $ucsm->morning == 'yes' ? true : false,
                         'SaturdayDelivery' => $ucsm->saturday == 'yes' ? true : false,
                         'Observations' => '',
                         'PackageContent' => implode(' | ', $contents),
-                        'CustomString' => $order_id
+                        'CustomString' => $order_id,
+                        "ParcelCodes" => [
+                            [
+                                "Code"=> 0,
+                                "Type"=>   $ucsm->type == 'envelope' ? 0 : 1,
+                                "Weight" => $weight,
+                                "Length" => $ucsm->length,
+                                "Width" => $ucsm->width,
+                                "Height" => $ucsm->height,
+                                "ParcelContent" => implode(' | ', $contents)
+                            ]
+                        ]
                     );
 
                     $barcode = $ucsm->uc->CallMethod('Awbs', $fields, 'POST', $ucsm->token);
