@@ -314,9 +314,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                             'OpenPackage' => $this->open == 'yes' ? true : false,
                             'SaturdayDelivery' => $this->saturday == 'yes' ? true : false,
                             'MorningDelivery' => $this->morning == 'yes' ? true : false,
-                            'ShipmentPayer' => $this->payer == 'recipient' ? 2 : 1,
-                            'ServiceId' => $this->payer == 'recipient' ? 4 : 1,
-                            'PriceTableId' => $this->priceplan
+                            'ShipmentPayer' => $this->payer == 'recipient' ? 2 : 1
                         );
                         $result = $this->uc->CallMethod('ShippingCalculation', $fields, 'POST', $this->token);
                         if (is_null($result) || $result === 'error') return null;
