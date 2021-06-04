@@ -25,11 +25,6 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                     $this->id                 = 'urgentcargus';
                     $this->method_title       = __('Livrare cu Cargus', 'urgentcargus');
 
-//                    $this->availability = 'including';
-//                    $this->countries = array(
-//                        'RO' // Romania
-//                    );
-
                     $this->init();
 
                     $this->title = isset($this->settings['title']) ? $this->settings['title'] : null;
@@ -53,6 +48,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                     $this->height = isset($this->settings['height']) ? $this->settings['height'] : null;
                     $this->width = isset($this->settings['width']) ? $this->settings['width'] : null;
                     $this->length = isset($this->settings['length']) ? $this->settings['length'] : null;
+                    $this->service = isset($this->settings['service']) ? $this->settings['service'] : null;
 
                     $this->uc = new UrgentCargusClass();
                     if (!empty($this->webservice) && !empty($this->apikey)) {
@@ -200,20 +196,26 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                             'title'         => __('Cost fix transport', 'urgentcargus'),
                             'type'          => 'text',
                         ),
-
                         'height' => array(
                             'title'         => __('Inaltime', 'urgentcargus'),
                             'type'          => 'number',
                         ),
-
                         'width' => array(
                             'title'         => __('Latime', 'urgentcargus'),
                             'type'          => 'number',
                         ),
-
                         'length' => array(
                             'title'         => __('Lungime', 'urgentcargus'),
                             'type'          => 'number',
+                        ),
+                        'service' => array(
+                            'title'         => __('Serviciu', 'urgentcargus'),
+                            'type'          => 'select',
+                            'class'         => 'select_height',
+                            'options'       => array(
+                                0 => 'Inactiv',
+                                1 => 'Activ'
+                            )
                         ),
                     );
                 }
@@ -316,6 +318,19 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                             'MorningDelivery' => $this->morning == 'yes' ? true : false,
                             'ShipmentPayer' => $this->payer == 'recipient' ? 2 : 1
                         );
+
+                        $service = isset($this->settings['service']) ? $this->settings['service'] : null;
+
+                        if($service == 1) {
+                            if($weight <= 31){
+                                $fields['ServiceId'] = 34;
+                            } elseif ($weight <= 50){
+                                $fields['ServiceId'] = 35;
+                            } else {
+                                $fields['ServiceId'] = 36;
+                            }
+                        }
+
                         $result = $this->uc->CallMethod('ShippingCalculation', $fields, 'POST', $this->token);
                         if (is_null($result) || $result === 'error') return null;
 
@@ -435,7 +450,6 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                     die();
                 }
 
-
                 if ($ucsm->token !== 'error') {
                     $fields = array(
                         'Sender' => array(
@@ -482,6 +496,16 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                             ]
                         ]
                     );
+
+                    if($ucsm->service == 1) {
+                        if($weight <= 31){
+                            $fields['ServiceId'] = 34;
+                        } elseif ($weight <= 50){
+                            $fields['ServiceId'] = 35;
+                        } else {
+                            $fields['ServiceId'] = 36;
+                        }
+                    }
 
                     $barcode = $ucsm->uc->CallMethod('Awbs', $fields, 'POST', $ucsm->token);
 
